@@ -1,4 +1,5 @@
 #include "core/Settings.h"
+#include "devices/DeviceCatalog.h"
 #include "kraken/KrakenService.h"
 #include "openrgb/RgbService.h"
 #include "profiles/ProfileManager.h"
@@ -107,6 +108,8 @@ int main(int argc, char* argv[]) {
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Kraken", &kraken);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "SystemInfo", &system);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Profiles", &profiles);
+    HardwareCatalog hardware;
+    qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Hardware", &hardware);
     qmlRegisterUncreatableType<RgbDeviceModel>("Orkc.Backend", 1, 0, "RgbDeviceModel", u"provided by Rgb"_s);
 
     QQmlApplicationEngine engine;
@@ -123,7 +126,7 @@ int main(int argc, char* argv[]) {
         auto page = std::make_shared<int>(0);
         QObject::connect(step, &QTimer::timeout, &app, [win, dir, page, step] {
             if (*page > 0) win->grabWindow().save(u"%1/page-%2.png"_s.arg(dir).arg(*page - 1));
-            if (*page >= 6) {
+            if (*page >= 7) {
                 step->stop();
                 QCoreApplication::quit();
                 return;

@@ -4,7 +4,14 @@ One desktop app for OpenRGB lighting and NZXT Kraken cooling/LCD on Omarchy (Arc
 C++20 / Qt 6 Quick UI, native OpenRGB SDK client, and an isolated Python service that is the
 *only* thing allowed to touch the Kraken.
 
-## Quick install (Arch / Omarchy)
+**Docs:** [Architecture](ARCHITECTURE.md) · [Device support](DEVICE_SUPPORT.md) ·
+[Distribution support](DISTRIBUTION_SUPPORT.md) · [Driver development](DRIVER_DEVELOPMENT.md) ·
+[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md)
+
+Not sure your hardware works? Open **Devices** in SudoRGB: it shows which driver handles each
+connected device and exports a diagnostics file for anything unrecognized.
+
+## Quick install (Arch, Fedora, openSUSE, Debian 13, Ubuntu 25.04+)
 
 ```bash
 gh auth login                      # once, the repo is private

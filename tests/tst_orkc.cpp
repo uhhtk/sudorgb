@@ -1,5 +1,6 @@
 // Unit tests for the protocol codec, persistence and profile validation.
 #include "core/JsonStore.h"
+#include "devices/DeviceCatalog.h"
 #include "devices/NativeDevices.h"
 #include "openrgb/OrgbProtocol.h"
 #include "profiles/Presets.h"
@@ -184,6 +185,62 @@ private Q_SLOTS:
         QStringList names;
         for (const auto& m : glorious::modes()) names << m.name;
         for (const QString& want : {u"Static"_s, u"Breathing"_s, u"Rainbow"_s, u"Off"_s}) QVERIFY(names.contains(want));
+    }
+
+    void catalogParsesBackendRules() {
+        using namespace catalog;
+        QCOMPARE(backendForRulesFile(u"60-openrgb.rules"_s), u"OpenRGB"_s);
+        QCOMPARE(backendForRulesFile(u"71-liquidctl.rules"_s), u"liquidctl"_s);
+        QCOMPARE(backendForRulesFile(u"99-razer.rules"_s), u"OpenRazer"_s);
+        QCOMPARE(backendForRulesFile(u"70-orkc-glorious.rules"_s), u"SudoRGB"_s);
+        QVERIFY(backendForRulesFile(u"70-mouse.rules"_s).isEmpty());
+        const auto r = parseRules(uR"(# comment
+SUBSYSTEMS=="usb|hidraw", ATTRS{idVendor}=="09da", ATTRS{idProduct}=="fa10", TAG+="uaccess", TAG+="Bloody_B820R"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="093a", ATTRS{idProduct}=="821d|826d", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1e71", TAG+="uaccess")"_s, u"X"_s);
+        QCOMPARE(r.size(), 4);
+        QCOMPARE(r[0].vid, uint16_t(0x09da));
+        QCOMPARE(r[0].pid, 0xfa10);
+        QCOMPARE(r[0].product, u"Bloody B820R"_s);
+        QCOMPARE(r[2].pid, 0x826d);  // "a|b" alternatives expand
+        QCOMPARE(r[3].pid, -1);      // vendor-wide rule
+    }
+
+    void catalogClassifiesHonestly() {
+        using namespace catalog;
+        Registry reg;
+        reg.rules = {{u"OpenRGB"_s, 0x1b1c, 0x0c1c, {}}, {u"liquidctl"_s, 0x1b1c, 0x0c1c, {}},
+                     {u"liquidctl"_s, 0x1e71, 0x3012, {}}, {u"liquidctl"_s, 0x1e71, 0x2007, {}},
+                     {u"OpenRazer"_s, 0x1532, -1, {}}, {u"liquidctl"_s, 0x1e71, -1, {}}};
+        QCOMPARE(reg.backendsFor(0x1b1c, 0x0c1c), (QStringList{u"OpenRGB"_s, u"liquidctl"_s}));
+        QCOMPARE(reg.backendsFor(0x1e71, 0x9999), QStringList());  // vendor-wide permission rules prove nothing
+        QVERIFY(usableBy(reg.backendsFor(0x1e71, 0x3012), 0x1e71, 0x3012));    // Kraken 2024: our Kraken service
+        QVERIFY(!usableBy(reg.backendsFor(0x1e71, 0x2007), 0x1e71, 0x2007));   // liquidctl-only device: known, not ours yet
+        QCOMPARE(describeStatus({u"liquidctl"_s}, false, true, true), u"known"_s);
+        QCOMPARE(describeStatus({u"OpenRGB"_s}, true, false, true), u"permissions"_s);
+        QCOMPARE(describeStatus({}, false, true, true), u"unsupported"_s);
+        QCOMPARE(describeStatus({}, false, true, false), u"other"_s);
+    }
+
+    void catalogParsesUsbIds() {
+        QHash<uint32_t, QString> n;
+        catalog::parseUsbIds(u"# x\n1b1c  Corsair\n\t0c1c  Commander Core\n\t\t00  iface\nC 00  class\n\t01  Audio\n"_s, &n);
+        QCOMPARE(n.value(0x1b1cFFFFu), u"Corsair"_s);
+        QCOMPARE(n.value(0x1b1c0c1cu), u"Commander Core"_s);
+        QCOMPARE(n.size(), 2);  // interface lines and class section ignored
+    }
+
+    void catalogLiveScan() {
+        catalog::Registry reg;
+        reg.load();
+        const QVariantMap sum = reg.summary();
+        qInfo().noquote() << "backends:" << sum.value(u"backends"_s).toMap();
+        for (const QVariant& v : reg.devices(false)) {
+            const QVariantMap d = v.toMap();
+            qInfo().noquote() << " " << d[u"status"_s].toString().leftJustified(11) << d[u"id"_s].toString()
+                              << d[u"name"_s].toString() << "|" << d[u"backends"_s].toStringList().join(u',');
+        }
+        QVERIFY(true);  // informational: real machine contents vary
     }
 };
 

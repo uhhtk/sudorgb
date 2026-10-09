@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(orkc VERSION 1.0.0 LANGUAGES CXX)
+project(orkc VERSION 1.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,8 +8,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Qml Quick QuickControls2)
-qt_standard_project_setup(REQUIRES 6.5)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Network Qml Quick QuickControls2)  # 6.8: QTP0004, per-corner radii, Shapes CurveRenderer
+qt_standard_project_setup(REQUIRES 6.8)
 qt_policy(SET QTP0004 NEW)  # qmldir per QML subdirectory (components/, pages/)
 
 include(GNUInstallDirs)
@@ -28,6 +28,7 @@ qt_add_executable(orkc
     src/profiles/ProfileManager.h src/profiles/ProfileManager.cpp
     src/profiles/Presets.h src/profiles/Presets.cpp
     src/devices/NativeDevices.h src/devices/NativeDevices.cpp
+    src/devices/DeviceCatalog.h src/devices/DeviceCatalog.cpp
 )
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -67,6 +68,7 @@ qt_add_qml_module(orkc
         qml/pages/CoolingPage.qml
         qml/pages/ProfilesPage.qml
         qml/pages/SettingsPage.qml
+        qml/pages/DevicesPage.qml
     RESOURCES
         resources/icons/sudorgb.png
 )
@@ -102,6 +104,7 @@ if(ORKC_BUILD_TESTS)
         src/core/JsonStore.h src/core/JsonStore.cpp
         src/profiles/Presets.h src/profiles/Presets.cpp
         src/devices/NativeDevices.h src/devices/NativeDevices.cpp
+        src/devices/DeviceCatalog.h src/devices/DeviceCatalog.cpp
     )
     target_include_directories(orkc_tests PRIVATE src)
     target_link_libraries(orkc_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)

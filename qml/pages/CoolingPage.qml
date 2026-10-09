@@ -28,7 +28,7 @@ ScrollView {
             title: "Cooling"
             subtitle: "Curves run in the cooler's firmware against liquid temperature, so they keep working even if this app closes."
         }
-        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(5) }
+        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
 
         Card {
             Layout.fillWidth: true

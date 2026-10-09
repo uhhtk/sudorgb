@@ -47,7 +47,7 @@ ScrollView {
             Layout.fillWidth: true
             Layout.leftMargin: 28
             Layout.rightMargin: 28
-            onFixOpenRgb: if (page.window) page.window.go(5)
+            onFixOpenRgb: if (page.window) page.window.go(6)
         }
 
         // ------------------------------------------------ hero: cooler + instruments

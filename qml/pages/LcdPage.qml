@@ -63,7 +63,7 @@ ScrollView {
             GhostButton { text: "Clear memory"; iconName: "trash"; enabled: Kraken.ready && !Kraken.lcdBusy; onClicked: clearDialog.open() }
         }
 
-        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(5) }
+        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
 
         RowLayout {
             Layout.fillWidth: true

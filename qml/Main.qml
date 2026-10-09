@@ -30,6 +30,7 @@ ApplicationWindow {
         { label: "LCD", icon: "lcd", src: "pages/LcdPage.qml" },
         { label: "Cooling", icon: "fan", src: "pages/CoolingPage.qml" },
         { label: "Profiles", icon: "profiles", src: "pages/ProfilesPage.qml" },
+        { label: "Devices", icon: "chip", src: "pages/DevicesPage.qml" },
         { label: "Settings", icon: "settings", src: "pages/SettingsPage.qml" }
     ]
 
