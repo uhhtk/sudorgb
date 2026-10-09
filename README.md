@@ -14,8 +14,7 @@ connected device and exports a diagnostics file for anything unrecognized.
 ## Quick install (Arch, Fedora, openSUSE, Debian 13, Ubuntu 25.04+)
 
 ```bash
-gh auth login                      # once, the repo is private
-gh repo clone uhhtk/sudorgb ~/sudorgb && ~/sudorgb/install.sh
+git clone https://github.com/uhhtk/sudorgb ~/sudorgb && ~/sudorgb/install.sh
 ```
 
 Update later with `cd ~/sudorgb && git pull && ./install.sh`.
