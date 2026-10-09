@@ -4,7 +4,16 @@ One desktop app for OpenRGB lighting and NZXT Kraken cooling/LCD on Omarchy (Arc
 C++20 / Qt 6 Quick UI, native OpenRGB SDK client, and an isolated Python service that is the
 *only* thing allowed to touch the Kraken.
 
-## Build & install
+## Quick install (Arch / Omarchy)
+
+```bash
+gh auth login                      # once, the repo is private
+gh repo clone uhhtk/sudorgb ~/sudorgb && ~/sudorgb/install.sh
+```
+
+Update later with `cd ~/sudorgb && git pull && ./install.sh`.
+
+## Build & install (manual)
 
 ```bash
 sudo pacman -S --needed cmake ninja qt6-base qt6-declarative qt6-shadertools qt6-wayland
