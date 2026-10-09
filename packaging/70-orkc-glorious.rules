@@ -1,0 +1,5 @@
+# ORKC: let the logged-in user set lighting on Glorious Model O 2 / O 2 Mini / I 2
+# (PixArt firmware, VID 093a). Scoped to these product IDs only: other PixArt
+# devices share the vendor ID. uaccess = ACL for the active local seat, like
+# liquidctl's and OpenRGB's own rules.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="093a", ATTRS{idProduct}=="821d|822a|822b|822d|826a|826d", TAG+="uaccess"

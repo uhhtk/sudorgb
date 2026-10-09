@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SudoRGB
+GenericName=Hardware lighting and cooling
+Comment=Unified OpenRGB lighting and NZXT Kraken LCD/cooling control
+Exec=orkc
+Icon=sudorgb
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=RGB;OpenRGB;Kraken;NZXT;LCD;fan;pump;cooling;
+StartupWMClass=orkc
