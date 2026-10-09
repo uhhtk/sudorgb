@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import os
@@ -51,6 +52,8 @@ DEFAULT_FRAME_MS = 100
 #: sensor-frame ring; staying far below it keeps uploads short (< 2 s) and leaves
 #: room so the driver never has to wipe every bucket mid-transfer.
 DEFAULT_BUDGET = 8 * 1024 * 1024
+#: Panels that the host streams JPEG frames to (Corsair iCUE ELITE LCD).
+JPEG_QUALITY = 85
 PIPELINE_VERSION = 3  # bump to invalidate cached outputs
 
 
@@ -199,6 +202,46 @@ def process_gif(src: Path, dst: Path, fit: str, rotation: int, size: int, budget
     )
 
 
+def process_frames(src: Path, dst: Path, fit: str, rotation: int, size: int) -> dict:
+    """Any still or animated image -> concatenated JPEG frames plus an index.
+
+    For panels without on-device GIF playback: the host streams one JPEG per
+    frame. The index holds [offset, length, duration_ms] per frame (duration 0
+    for a still). Frames are dropped (not slowed) to respect the frame cap and
+    the minimum frame time, like process_gif.
+    """
+    img = _check_source(src)
+    n = getattr(img, "n_frames", 1)
+    durs = _durations(img) if n > 1 else [0]
+    k = max(1, math.ceil(n / MAX_FRAMES), math.ceil(MIN_FRAME_MS / max(sum(durs) / len(durs), 1))) if n > 1 else 1
+    index: list[list[int]] = []
+
+    def write(path):
+        index.clear()
+        with open(path, "wb") as f:
+            for start in range(0, n, k):
+                img.seek(start)
+                rgb = _fit(_flatten(img), size, fit)
+                if rotation:
+                    rgb = rgb.rotate(-rotation)
+                buf = io.BytesIO()
+                rgb.save(buf, format="JPEG", quality=JPEG_QUALITY)
+                data = buf.getvalue()
+                ms = max(MIN_FRAME_MS, sum(durs[start : start + k])) if n > 1 else 0
+                index.append([f.tell(), len(data), ms])
+                f.write(data)
+
+    _atomic_save(dst, write)
+    return {"path": str(dst), "frames": len(index), "source_frames": n, "index": index,
+            "duration_ms": sum(i[2] for i in index), "bytes": dst.stat().st_size, "size": size}
+
+
+def read_frames(meta: dict) -> list[tuple[bytes, int]]:
+    """Load a process_frames() result as [(jpeg, duration_ms), ...]."""
+    data = Path(meta["path"]).read_bytes()
+    return [(data[o : o + n], ms) for o, n, ms in meta["index"]]
+
+
 def _encode_frames(img, montage, n, k, durs, colors, size, fit, rotation):
     """Quantize frames against one palette; unchanged pixels become transparent.
 
@@ -261,7 +304,7 @@ def run(src: str, kind: str, fit: str, rotation: int, size: int, cache_dir: str,
     cache = Path(cache_dir)
     cache.mkdir(parents=True, exist_ok=True)
     key = cache_key(srcp, kind, fit, rotation, size) if srcp.is_file() else ""
-    ext = ".gif" if kind == "gif" else ".png"
+    ext = {"gif": ".gif", "frames": ".mjpg"}.get(kind, ".png")
     dst = cache / f"{kind}-{key}{ext}"
     meta = dst.with_suffix(dst.suffix + ".json")
     if key and dst.is_file():
@@ -273,6 +316,8 @@ def run(src: str, kind: str, fit: str, rotation: int, size: int, cache_dir: str,
         return res
     if kind == "gif":
         res = process_gif(srcp, dst, fit, rotation, size, budget)
+    elif kind == "frames":
+        res = process_frames(srcp, dst, fit, rotation, size)
     else:
         res = process_static(srcp, dst, fit, size)
     _atomic_save(meta, lambda p: Path(p).write_text(json.dumps(res)))
@@ -281,9 +326,9 @@ def run(src: str, kind: str, fit: str, rotation: int, size: int, cache_dir: str,
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Prepare media for a Kraken LCD")
+    ap = argparse.ArgumentParser(description="Prepare media for a cooler LCD")
     ap.add_argument("--src", required=True)
-    ap.add_argument("--kind", choices=("gif", "image"), required=True)
+    ap.add_argument("--kind", choices=("gif", "image", "frames"), required=True)
     ap.add_argument("--fit", default="cover")
     ap.add_argument("--rotation", type=int, default=0)
     ap.add_argument("--size", type=int, default=LCD_DEFAULT)

@@ -10,6 +10,16 @@ ScrollView {
     property var window
     contentWidth: availableWidth
 
+    // Every LCD SudoRGB can drive: the Kraken (own service) plus cooler-service panels.
+    readonly property bool krakenPresent: ["searching", "disabled", "stopped"].indexOf(Kraken.state) < 0
+    readonly property var otherLcds: Coolers.devices.filter(d => d.lcd)
+    readonly property var screens: (krakenPresent ? [{ value: "kraken", label: Kraken.deviceName || "NZXT Kraken" }] : [])
+                                   .concat(otherLcds.map(d => ({ value: d.id, label: d.name })))
+    property string screen: ""
+    readonly property string current: screens.some(s => s.value === screen) ? screen : screens.length ? screens[0].value : "kraken"
+    readonly property var currentDevice: otherLcds.find(d => d.id === current)
+    readonly property bool showKraken: current === "kraken" && (krakenPresent || !otherLcds.length)
+
     readonly property var lcd: Kraken.desired.lcd || ({})
     readonly property var modes: Kraken.capabilities.lcd_modes || ["liquid", "image", "gif", "off"]
     readonly property var styles: Kraken.capabilities.sensor_styles || []
@@ -57,15 +67,45 @@ ScrollView {
             Layout.fillWidth: true
             Layout.margins: 32
             Layout.bottomMargin: 0
-            title: "Kraken LCD"
-            subtitle: Kraken.ready ? (Kraken.deviceInfo.lcd_resolution ? Kraken.deviceInfo.lcd_resolution.join("×") + " round display" : "Round display")
+            title: "LCD"
+            subtitle: page.currentDevice ? page.currentDevice.name : Kraken.ready ? (Kraken.deviceInfo.lcd_resolution ? Kraken.deviceInfo.lcd_resolution.join("×") + " round display" : "Round display")
                                    : "Kraken " + Kraken.state + " — settings are stored and applied when it connects"
-            GhostButton { text: "Clear memory"; iconName: "trash"; enabled: Kraken.ready && !Kraken.lcdBusy; onClicked: clearDialog.open() }
+            GhostButton { visible: page.showKraken; text: "Clear memory"; iconName: "trash"; enabled: Kraken.ready && !Kraken.lcdBusy; onClicked: clearDialog.open() }
         }
 
-        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
+        Segmented {
+            visible: page.screens.length > 1
+            Layout.leftMargin: 32
+            model: page.screens
+            current: page.current
+            onActivated: (v) => page.screen = v
+        }
+        Card {
+            visible: !page.krakenPresent && !page.otherLcds.length
+            Layout.fillWidth: true
+            Layout.leftMargin: 32
+            Layout.rightMargin: 32
+            title: "No LCD cooler found"
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: Theme.textDim; font.family: Theme.font; font.pixelSize: Theme.fsBody
+                text: "Supported screens: NZXT Kraken Z3 / 2023 / 2024 (incl. Elite), Corsair iCUE ELITE LCD (Elite Capellix LCD cap), Corsair NAUTILUS LCD, Corsair XC7 ELITE LCD, Corsair iCUE LINK AIO / XD5 LCD, MSI MPG Coreliquid K360. Plugged one in? It shows up here within 10 seconds; the Devices tab tells you if it needs permission."
+            }
+        }
+        Loader {
+            active: !!page.currentDevice
+            visible: active
+            Layout.fillWidth: true
+            Layout.leftMargin: 32
+            Layout.rightMargin: 32
+            sourceComponent: CoolerLcdPanel { device: page.currentDevice }
+        }
+
+        ConflictBanner { visible: page.showKraken; Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
 
         RowLayout {
+            visible: page.showKraken && page.krakenPresent
             Layout.fillWidth: true
             Layout.leftMargin: 32
             Layout.rightMargin: 32

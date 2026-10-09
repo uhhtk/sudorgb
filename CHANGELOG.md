@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0 (2026-10-09)
+
+### Added
+* **All liquidctl AIOs and fan controllers** (not just the Kraken): Corsair Hydro / Platinum / Pro XT /
+  iCUE ELITE CAPELLIX (Commander Core / ST), NZXT Kraken X / M22 / Smart Device / Control Hub, EVGA CLC,
+  ASUS Ryujin II / Ryuo, MSI MPG Coreliquid, Lian Li Galahad II LCD / Uni hubs, Aquacomputer.
+  Live pump/fan readouts plus per-channel curve or fixed duty on the Cooling page. Curves run in
+  the cooler's firmware where supported; otherwise SudoRGB applies them every 2 s.
+  Pumps never go below 20%.
+* **LCD support is per device, not Kraken-only.** The LCD page has a screen picker. New screens:
+  * Corsair iCUE ELITE LCD (the Elite Capellix LCD cap), NAUTILUS LCD, XC7 ELITE LCD, and iCUE LINK
+    AIO / XD5 LCD: stills plus GIF, animated WebP and APNG, streamed frame by frame.
+  * MSI Coreliquid K360: still images.
+* Media pipeline: JPEG frame-sequence output (any still or animated format → 480×480 frames + timing).
+* Cooler service (`service/cooler_service.py`): an isolated process with the same ownership rule as
+  the Kraken: it never opens a device another program holds.
+* udev rule `70-orkc-corsair-lcd.rules`.
+
+### Changed
+* The Kraken's conflict scan now covers only the Kraken models, so an NZXT hub held by another program
+  no longer blocks the Kraken.
+* The Devices page counts liquidctl coolers as supported (power supplies excluded).
+
 ## 1.1.0 (2026-10-09)
 
 ### Added

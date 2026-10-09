@@ -36,6 +36,14 @@ driver can control it, and lets you export a diagnostics file for anything unrec
 | NZXT Kraken Z53 / Z63 / Z73 | 1e71:3008 | Kraken service (LCD 320×320) |
 | NZXT Kraken 2023 / 2023 Elite | 1e71:300e / 1e71:300c | Kraken service (300c: liquidctl marks it "broken", bulk LCD may be unavailable) |
 | NZXT Kraken 2024 Plus | 1e71:3014 | Kraken service |
+| Corsair iCUE ELITE LCD (Elite Capellix LCD cap) | 1b1c:0c33 / 0c39 | SudoRGB native LCD streamer: stills + GIF/WebP/APNG |
+| Corsair NAUTILUS LCD, XC7 ELITE LCD, iCUE LINK AIO / XD5 LCD | 1b1c:0c55 / 0c57 / 0c42 / 0c4e / 0c43 | Same LCD streamer (protocol facts from OpenLinkHub) |
+| MSI MPG Coreliquid K360 LCD | 0db0:b130 | liquidctl (still images in a device slot) |
+| Every AIO / fan hub liquidctl supports (Corsair Hydro/Platinum/Pro XT/ELITE CAPELLIX, NZXT Kraken X/M22/Smart Device/Control Hub, EVGA CLC, ASUS Ryujin II/Ryuo, MSI Coreliquid, Lian Li GA II/Uni, Aquacomputer) | various | Cooler service via liquidctl: status, fixed duty, curves (hardware or software) |
+
+Corsair Commander Core / ST (ELITE CAPELLIX) cooling: OpenRGB keeps this controller open for
+lighting, and SudoRGB will not share a controller. Untick it in OpenRGB → Settings → Supported Devices
+to let SudoRGB drive the pump and fans (verified: SudoRGB detects the holder and stays off).
 
 ## Via OpenRGB
 
@@ -58,7 +66,7 @@ proprietary.
 |---|---|
 | Razer (most models) | Bridge to OpenRazer daemon over D-Bus |
 | Logitech mice (G-series) | Bridge to ratbagd (libratbag) over D-Bus; OpenRGB already covers many |
-| liquidctl-only devices (Corsair/NZXT/ASUS coolers & hubs) | Extend the Python service beyond Kraken |
+| Lian Li Galahad II LCD screen, ASUS Ryujin II screen | No usable protocol yet (H.264 stream / not reverse engineered) |
 | Kraken static-colour latency | Test firmware "Fixed" effect (2A 04 mode 0) as a faster static path |
 | Glorious wireless static stall | Capture Glorious CORE traffic (USBPcap) and match it |
 

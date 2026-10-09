@@ -86,9 +86,11 @@ bool isRgbVendor(uint16_t vid) {
 }
 
 bool usableBy(const QStringList& backends, uint16_t vid, uint16_t pid) {
-    static const QList<uint16_t> krakenService{0x3008, 0x300c, 0x300e, 0x3012, 0x3014};  // liquidctl KrakenZ3 family
+    // liquidctl devices run in SudoRGB's Kraken/cooler services, except power supplies
+    // (Corsair 1b1c:1cxx, NZXT 7793:xxxx), which SudoRGB does not drive.
+    const bool psu = (vid == 0x1b1c && (pid & 0xff00) == 0x1c00) || vid == 0x7793;
     return backends.contains(u"OpenRGB"_s) || backends.contains(u"SudoRGB"_s) ||
-           (backends.contains(u"liquidctl"_s) && vid == 0x1e71 && krakenService.contains(pid));
+           (backends.contains(u"liquidctl"_s) && !psu);
 }
 
 QString describeStatus(const QStringList& backends, bool usable, bool hidWritable, bool rgbVendor) {

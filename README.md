@@ -1,6 +1,6 @@
-# SudoRGB — RGB & NZXT Kraken control for Linux
+# SudoRGB — RGB, cooling & LCD control for Linux
 
-One desktop app for OpenRGB lighting and NZXT Kraken cooling/LCD on Omarchy (Arch + Hyprland).
+One desktop app for OpenRGB lighting, every liquidctl AIO / fan controller, and cooler LCDs (NZXT Kraken, Corsair ELITE / NAUTILUS / LINK LCD, MSI Coreliquid). Built on Omarchy, works on any modern distro.
 C++20 / Qt 6 Quick UI, native OpenRGB SDK client, and an isolated Python service that is the
 *only* thing allowed to touch the Kraken.
 

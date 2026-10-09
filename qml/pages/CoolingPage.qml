@@ -9,6 +9,8 @@ ScrollView {
     property var window
     contentWidth: availableWidth
     readonly property var cooling: Kraken.desired.cooling || ({})
+    readonly property var others: Coolers.devices.filter(d => d.kind === "cooler")
+    readonly property bool krakenShown: ["searching", "disabled", "stopped"].indexOf(Kraken.state) < 0 || others.length === 0
     readonly property int pumpFloor: Kraken.capabilities.pump_duty_min || 20
 
     readonly property var presets: ({
@@ -26,15 +28,16 @@ ScrollView {
             Layout.margins: 32
             Layout.bottomMargin: 0
             title: "Cooling"
-            subtitle: "Curves run in the cooler's firmware against liquid temperature, so they keep working even if this app closes."
+            subtitle: "Pumps and fans of every supported AIO and fan controller. Curves follow liquid temperature."
         }
-        ConflictBanner { Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
+        ConflictBanner { visible: page.krakenShown; Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; onFixOpenRgb: if (page.window) page.window.go(6) }
 
         Card {
+            visible: page.krakenShown
             Layout.fillWidth: true
             Layout.leftMargin: 32
             Layout.rightMargin: 32
-            title: "Live"
+            title: (Kraken.deviceName || "NZXT Kraken") + " · live"
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 36
@@ -48,7 +51,7 @@ ScrollView {
         }
 
         Repeater {
-            model: [
+            model: !page.krakenShown ? [] : [
                 { ch: "pump", title: "Pump", sub: "Minimum " + page.pumpFloor + "% (firmware limit)", floor: page.pumpFloor, tone: Theme.seriesPump,
                   rpm: Kraken.pumpRpm, duty: Kraken.pumpDuty },
                 { ch: "fan", title: "Radiator fans", sub: "0% allowed — fans may stop at low temperature", floor: 0, tone: Theme.seriesFan,
@@ -127,6 +130,16 @@ ScrollView {
                     GhostButton { visible: card.dirty; text: "Revert"; onClicked: { card.mode = card.cfg.mode; card.points = card.cfg.points || card.points; card.duty = card.cfg.duty || 60 } }
                     PrimaryButton { text: card.dirty ? "Apply" : "Applied"; iconName: "check"; enabled: card.dirty || !page.cooling[card.modelData.ch]; onClicked: card.apply() }
                 }
+            }
+        }
+        Repeater {
+            model: page.others
+            delegate: CoolerCard {
+                required property var modelData
+                device: modelData
+                Layout.fillWidth: true
+                Layout.leftMargin: 32
+                Layout.rightMargin: 32
             }
         }
         Item { Layout.preferredHeight: 24 }

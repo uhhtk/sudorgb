@@ -1,3 +1,4 @@
+#include "coolers/CoolerHub.h"
 #include "core/Settings.h"
 #include "devices/DeviceCatalog.h"
 #include "kraken/KrakenService.h"
@@ -7,6 +8,7 @@
 
 #include <QCommandLineParser>
 #include <QDir>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -72,17 +74,21 @@ int main(int argc, char* argv[]) {
     RgbService rgb(&settings);
     KrakenService kraken(&settings);
     SystemMonitor system;
+    CoolerHub coolers(settings.pythonExecutable(),
+                      QFileInfo(kraken.servicePath()).dir().filePath(u"cooler_service.py"_s));
     ProfileManager profiles(&settings, &rgb, &kraken);
     profiles.load();
 
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&] {
         profiles.saveSession();
         kraken.stop();
+        coolers.stop();
         settings.saveNow();
     });
 
     rgb.start();
     kraken.start();
+    coolers.start();
 
     if (cli.isSet(restoreOpt)) {
         // Exit once both sides have had their chance (or after 45 s).
@@ -106,6 +112,7 @@ int main(int argc, char* argv[]) {
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "AppSettings", &settings);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Rgb", &rgb);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Kraken", &kraken);
+    qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Coolers", &coolers);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "SystemInfo", &system);
     qmlRegisterSingletonInstance("Orkc.Backend", 1, 0, "Profiles", &profiles);
     HardwareCatalog hardware;

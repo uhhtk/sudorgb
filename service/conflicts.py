@@ -1,4 +1,4 @@
-"""Exclusive-ownership guards for the Kraken hardware.
+"""Exclusive-ownership guards for the Kraken and other cooler hardware.
 
 Two layers make sure only one process ever drives the cooler:
 
@@ -23,7 +23,6 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-NZXT_VENDOR = "1e71"
 _KNOWN_TOOLS = {
     "openkraken": "OpenKraken",
     "openrgb": "OpenRGB",
@@ -78,21 +77,31 @@ class InstanceLock:
             self._fd = None
 
 
-def kraken_nodes() -> set[str]:
-    """Device nodes belonging to any NZXT (vendor 1e71) device."""
+#: Kraken models the Kraken service drives (KrakenZ3 family). Other NZXT devices
+#: (Kraken X, Smart Device, Control Hub) belong to the cooler service or OpenRGB,
+#: and another program holding them must not knock the Kraken offline.
+KRAKEN_IDS = {(0x1E71, p) for p in (0x3008, 0x300C, 0x300E, 0x3012, 0x3014)}
+
+
+def usb_nodes(ids) -> set[str]:
+    """hidraw and /dev/bus/usb nodes of every connected device whose (vid, pid) is in ids."""
+    ids = set(ids)
     nodes: set[str] = set()
     for hid in Path("/sys/class/hidraw").glob("hidraw*"):
         try:
             uevent = (hid / "device" / "uevent").read_text()
         except OSError:
             continue
-        # HID_ID=0003:00001E71:00003012
-        for line in uevent.splitlines():
-            if line.startswith("HID_ID=") and f":0000{NZXT_VENDOR.upper()}:" in line.upper():
-                nodes.add(f"/dev/{hid.name}")
+        for line in uevent.splitlines():  # HID_ID=0003:00001E71:00003012
+            if line.startswith("HID_ID="):
+                parts = line[7:].split(":")
+                if len(parts) == 3 and (int(parts[1], 16), int(parts[2], 16)) in ids:
+                    nodes.add(f"/dev/{hid.name}")
     for usb in Path("/sys/bus/usb/devices").iterdir():
         try:
-            if (usb / "idVendor").read_text().strip().lower() != NZXT_VENDOR:
+            vid = int((usb / "idVendor").read_text(), 16)
+            pid = int((usb / "idProduct").read_text(), 16)
+            if (vid, pid) not in ids:
                 continue
             bus = int((usb / "busnum").read_text())
             dev = int((usb / "devnum").read_text())
@@ -100,6 +109,10 @@ def kraken_nodes() -> set[str]:
             continue
         nodes.add(f"/dev/bus/usb/{bus:03d}/{dev:03d}")
     return nodes
+
+
+def kraken_nodes() -> set[str]:
+    return usb_nodes(KRAKEN_IDS)
 
 
 def _proc_name(pid: str) -> str:
@@ -129,10 +142,13 @@ def _tool_for(name: str) -> str:
     return name
 
 
-def scan(exclude_pids: set[int] | None = None) -> list[Holder]:
-    """Return other processes that hold Kraken nodes or are known Kraken tools."""
+def scan(exclude_pids: set[int] | None = None, nodes: set[str] | None = None) -> list[Holder]:
+    """Return other processes that hold the given nodes (default: the Kraken's).
+
+    OpenKraken counts as a holder only for the default Kraken scan."""
     exclude = {os.getpid()} | (exclude_pids or set())
-    nodes = kraken_nodes()
+    kraken = nodes is None
+    nodes = kraken_nodes() if kraken else nodes
     holders: dict[int, Holder] = {}
     for entry in os.scandir("/proc"):
         if not entry.name.isdigit():
@@ -158,7 +174,7 @@ def scan(exclude_pids: set[int] | None = None) -> list[Holder]:
                         h.nodes.append(target)
         # OpenKraken grabs the device on its own schedule (and reconnects in a
         # loop), so its mere presence is a conflict even before it opens a node.
-        if pid not in holders:
+        if kraken and pid not in holders:
             pname = _proc_name(entry.name)
             if pname == "openkraken" or pname.startswith("openkraken"):
                 holders[pid] = Holder(pid, pname, "OpenKraken")

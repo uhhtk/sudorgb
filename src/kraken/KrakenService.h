@@ -59,6 +59,7 @@ public:
 
     void start();
     void stop();
+    QString servicePath() const;  // kraken_service.py; cooler_service.py lives next to it
 
     QString state() const { return m_state; }
     QString stateMessage() const { return m_stateMessage; }
@@ -129,7 +130,6 @@ private:
     void loadDesired();
     void mergeDesired(const QString& section, const QString& key, const QJsonObject& value);
     void appendLog(const QString& line);
-    QString servicePath() const;
 
     Settings* m_settings;
     QProcess* m_proc = nullptr;

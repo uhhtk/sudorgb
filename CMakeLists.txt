@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(orkc VERSION 1.1.0 LANGUAGES CXX)
+project(orkc VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,6 +29,7 @@ qt_add_executable(orkc
     src/profiles/Presets.h src/profiles/Presets.cpp
     src/devices/NativeDevices.h src/devices/NativeDevices.cpp
     src/devices/DeviceCatalog.h src/devices/DeviceCatalog.cpp
+    src/coolers/CoolerHub.h src/coolers/CoolerHub.cpp
 )
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -44,6 +45,8 @@ qt_add_qml_module(orkc
         qml/components/Meter.qml
         qml/components/Readout.qml
         qml/components/CoolerView.qml
+        qml/components/CoolerCard.qml
+        qml/components/CoolerLcdPanel.qml
         qml/components/StatusPill.qml
         qml/components/ColorWheel.qml
         qml/components/AccentSlider.qml
@@ -85,12 +88,13 @@ target_link_libraries(orkc PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6:
 
 install(TARGETS orkc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES service/kraken_service.py service/backend.py service/conflicts.py service/media.py
+              service/cooler_service.py service/corsair_lcd.py
         DESTINATION ${ORKC_SERVICE_INSTALL_DIR})
 install(FILES service/kraken_driver/__init__.py service/kraken_driver/device.py
               service/kraken_driver/lcd_render.py service/kraken_driver/LICENSE.OpenKraken
         DESTINATION ${ORKC_SERVICE_INSTALL_DIR}/kraken_driver)
 install(FILES packaging/orkc.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
-install(FILES packaging/70-orkc-glorious.rules DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/udev/rules.d)
+install(FILES packaging/70-orkc-glorious.rules packaging/70-orkc-corsair-lcd.rules DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/udev/rules.d)
 install(FILES resources/icons/sudorgb.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
 
 # --- tests -------------------------------------------------------------------

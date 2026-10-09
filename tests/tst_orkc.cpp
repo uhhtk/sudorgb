@@ -215,7 +215,8 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1e71", TAG+="uaccess")"_s, u"X"_s);
         QCOMPARE(reg.backendsFor(0x1b1c, 0x0c1c), (QStringList{u"OpenRGB"_s, u"liquidctl"_s}));
         QCOMPARE(reg.backendsFor(0x1e71, 0x9999), QStringList());  // vendor-wide permission rules prove nothing
         QVERIFY(usableBy(reg.backendsFor(0x1e71, 0x3012), 0x1e71, 0x3012));    // Kraken 2024: our Kraken service
-        QVERIFY(!usableBy(reg.backendsFor(0x1e71, 0x2007), 0x1e71, 0x2007));   // liquidctl-only device: known, not ours yet
+        QVERIFY(usableBy(reg.backendsFor(0x1e71, 0x2007), 0x1e71, 0x2007));    // Kraken X3: cooler service
+        QVERIFY(!usableBy({u"liquidctl"_s}, 0x1b1c, 0x1c05));                   // Corsair PSU: known, not driven
         QCOMPARE(describeStatus({u"liquidctl"_s}, false, true, true), u"known"_s);
         QCOMPARE(describeStatus({u"OpenRGB"_s}, true, false, true), u"permissions"_s);
         QCOMPARE(describeStatus({}, false, true, true), u"unsupported"_s);

@@ -27,6 +27,9 @@ families. Hardware the maintainers own gets no special priority.
    RGB & Fan controllers, ASUS Ryujin, cooling + lighting where OpenRGB doesn't already cover them.
 4. Contribute missing devices upstream to OpenRGB where possible; it benefits every Linux user.
 
+## Done in 1.2
+* liquidctl coolers in a separate cooler service; LCD support per device (Corsair LCD family, MSI).
+
 ## Stage 4: lighting engine
 * Layout canvas (device placement, per-LED coordinates) → synchronised cross-device effects.
 * Effects library: wave, gradient, ripple/reactive (key events via libinput), custom user effects.
