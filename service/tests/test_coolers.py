@@ -108,6 +108,22 @@ class CoolerServiceTest(unittest.TestCase):
         self.assertEqual(self.dev()["state"], "busy")
         self.assertIn(("disconnect",), self.drv.calls)
 
+    def test_openrgb_controller_untouched_until_claimed(self):
+        # Login race: OpenRGB supports it but has not opened it yet. liquidctl would
+        # flip it to hardware mode and kill OpenRGB's colours, so it must stay closed.
+        shared = cs.Device("1b1c:0c1c", "Commander Core", "cooler", set(), {"/nonexistent/node"}, lambda: self.drv)
+        shared.shared = True
+        self.svc.discover = lambda: [shared]
+        self.svc.tick(0)
+        self.assertEqual(self.dev()["state"], "openrgb")
+        self.assertEqual(self.drv.calls, [])
+        self.svc.handle({"id": 1, "cmd": "claim", "args": {"device": "1b1c:0c1c", "on": True}})
+        self.svc.tick(1)
+        self.assertEqual(self.dev()["state"], "ready")
+        self.svc.handle({"id": 2, "cmd": "claim", "args": {"device": "1b1c:0c1c", "on": False}})
+        self.assertIn(("disconnect",), self.drv.calls)
+        self.assertEqual(self.dev()["state"], "openrgb")
+
     def test_desired_speed_restored_on_reopen(self):
         self.svc.tick(0)
         self.svc.handle({"id": 1, "cmd": "set_speed", "args": {"device": "1b1c:0c1c", "channel": "fan1", "mode": "fixed", "duty": 55}})

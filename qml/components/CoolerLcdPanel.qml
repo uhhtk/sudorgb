@@ -19,14 +19,14 @@ RowLayout {
     property string mode: want.mode || "media"
     property string path: want.path || ""
     property string fit: want.fit || "cover"
-    property int rotation: want.rotation || 0
+    property int turn: want.rotation || 0
     readonly property bool dirty: mode !== (want.mode || "media") || path !== (want.path || "") || fit !== (want.fit || "cover")
-                                  || rotation !== (want.rotation || 0)
+                                  || turn !== (want.rotation || 0)
     readonly property string fileUrl: path ? "file://" + path.split("/").map(encodeURIComponent).join("/") : ""
 
     function apply() {
         const cfg = { mode: mode }
-        if (mode === "media") { cfg.path = path; cfg.fit = fit; cfg.rotation = rotation }
+        if (mode === "media") { cfg.path = path; cfg.fit = fit; cfg.rotation = turn }
         if (caps.brightness) cfg.brightness = Math.round(brightness.value)
         Coolers.setLcd(device.id, cfg)
     }
@@ -77,8 +77,8 @@ RowLayout {
         Segmented {
             visible: panel.round
             model: [{ value: 0, label: "0°" }, { value: 90, label: "90°" }, { value: 180, label: "180°" }, { value: 270, label: "270°" }]
-            current: panel.rotation
-            onActivated: (v) => panel.rotation = v
+            current: panel.turn
+            onActivated: (v) => panel.turn = v
         }
     }
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 (2026-10-12)
+
+### Fixed
+* Corsair lights (Commander Core / ELITE CAPELLIX) could go dark after login. The cooler service
+  sometimes reached the controller before OpenRGB did, and liquidctl's commands switch it back to
+  hardware mode, which silently overrides OpenRGB's colours. Controllers that OpenRGB supports are
+  now never opened unless you press **Take over cooling** on the Cooling page (after unticking the
+  controller in OpenRGB).
+* QML warning about `rotation` in the LCD panel.
+
 ## 1.2.0 (2026-10-09)
 
 ### Added

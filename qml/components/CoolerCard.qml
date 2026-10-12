@@ -26,7 +26,7 @@ Card {
     subtitle: ready ? (Theme.isNum(device.liquid_temp) ? "Liquid " + Theme.temp(device.liquid_temp) + Theme.tempUnit : "No temperature reported")
                     : device.message
     trailing: StatusPill {
-        text: card.ready ? "Connected" : device.state === "busy" ? "In use by " + (device.holders || []).join(", ")
+        text: card.ready ? "Connected" : device.state === "openrgb" ? "Lighting by OpenRGB" : device.state === "busy" ? "In use by " + (device.holders || []).join(", ")
               : device.state === "permission" ? "Needs permission" : device.state
         kind: card.ready ? "ok" : device.state === "busy" || device.state === "permission" ? "warn" : "idle"
     }
@@ -106,6 +106,15 @@ Card {
                 onClicked: Coolers.setSpeed(card.device.id, card.channel,
                                             card.mode === "fixed" ? { mode: "fixed", duty: card.duty } : { mode: "curve", points: card.points })
             }
+        }
+    }
+    RowLayout {
+        visible: card.device.shared === true
+        Layout.fillWidth: true
+        Item { Layout.fillWidth: true }
+        GhostButton {
+            text: card.device.claimed ? "Give back to OpenRGB" : "Take over cooling"
+            onClicked: Coolers.claim(card.device.id, !card.device.claimed)
         }
     }
     Text {

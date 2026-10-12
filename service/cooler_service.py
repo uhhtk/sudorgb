@@ -61,6 +61,20 @@ NAMES = {(0x1B1C, 0x0C1C): "Corsair iCUE ELITE CAPELLIX (Commander Core)",
 LIQUIDCTL_SCREENS = {(0x0DB0, 0xB130): {"media": ["image"], "size": [240, 320], "brightness": False}}
 
 
+def openrgb_ids() -> set:
+    """(vid, pid) pairs OpenRGB drives, read from its installed udev rules."""
+    ids = set()
+    for d in ("/usr/lib/udev/rules.d", "/lib/udev/rules.d", "/usr/local/lib/udev/rules.d", "/etc/udev/rules.d"):
+        for f in Path(d).glob("*openrgb*.rules"):
+            try:
+                text = f.read_text(errors="replace")
+            except OSError:
+                continue
+            for vid, pids in re.findall(r'idVendor}=="([0-9a-fA-F]{4})".*?idProduct}=="([0-9a-fA-F|]+)"', text):
+                ids.update((int(vid, 16), int(p, 16)) for p in pids.split("|"))
+    return ids
+
+
 def channel_of(label: str) -> str | None:
     low = label.lower()
     if "pump" in low:
@@ -115,6 +129,11 @@ class Device:
         self.soft_last: dict[str, tuple[int, float]] = {}
         self.lcd_caps: dict | None = None
         self.lcd_shown: dict = {"mode": "firmware"}
+        #: OpenRGB also drives this controller (its lighting). liquidctl's commands
+        #: switch such controllers back to hardware mode (Commander Core: every call
+        #: ends with "sleep"), which kills OpenRGB's colours, and at login we may get
+        #: there before OpenRGB opens it. So never open it unless the user hands it over.
+        self.shared = False
 
     def to_json(self, desired: dict) -> dict:
         want = desired.get(self.id, {})
@@ -124,7 +143,8 @@ class Device:
             chans.append({"id": ch, "label": channel_label(ch), "rpm": info.get("rpm"), "duty": info.get("duty"),
                           "curve": self.curve_kind.get(ch), "floor": PUMP_MIN if ch == "pump" else 0})
         return {"id": self.id, "name": self.name, "kind": self.kind, "state": self.state, "message": self.message,
-                "holders": self.holders, "liquid_temp": self.liquid, "channels": chans,
+                "holders": self.holders, "liquid_temp": self.liquid, "shared": self.shared,
+                "claimed": bool(want.get("claim")), "channels": chans,
                 "status": [[str(a), b if isinstance(b, (int, float, str, type(None))) else str(b), str(c)] for a, b, c in self.status],
                 "speed": want.get("speed", {}), "lcd": None if not self.lcd_caps else
                 {"caps": self.lcd_caps, "desired": want.get("lcd"), "shown": self.lcd_shown}}
@@ -135,7 +155,7 @@ def discover_liquidctl() -> list[Device]:
         from liquidctl import find_liquidctl_devices
     except ImportError:
         return []
-    out, seen = [], {}
+    out, seen, shared = [], {}, openrgb_ids()
     for drv in find_liquidctl_devices():
         module = type(drv).__module__.rsplit(".", 1)[-1]
         vid, pid = drv.vendor_id, drv.product_id
@@ -147,6 +167,7 @@ def discover_liquidctl() -> list[Device]:
         name = NAMES.get((vid, pid)) or drv.description.replace(" (broken)", "")
         dev = Device(dev_id, name, "cooler", {(vid, pid)}, conflicts.usb_nodes({(vid, pid)}), lambda d=drv: _open_liquidctl(d))
         dev.lcd_caps = LIQUIDCTL_SCREENS.get((vid, pid))
+        dev.shared = (vid, pid) in shared
         out.append(dev)
     return out
 
@@ -298,6 +319,12 @@ class CoolerService:
                 dev.message = (f"{', '.join(dev.holders)} has this device open. Two programs on one controller "
                                "garble each other's commands, so SudoRGB stays off it.")
             elif dev.handle is None:
+                if dev.shared and not self.desired.get(dev.id, {}).get("claim"):
+                    dev.state = "openrgb"
+                    dev.message = ("OpenRGB drives this controller's lighting, so SudoRGB leaves it alone. "
+                                   "To control pump and fans here, untick it in OpenRGB (Settings → Supported "
+                                   "Devices), restart OpenRGB, then choose Take over.")
+                    continue
                 self.open(dev)
 
     def open(self, dev: Device) -> None:
@@ -439,7 +466,15 @@ class CoolerService:
             dev = self.devices.get(a.get("device"))
             if dev is None:
                 return self.reply(rid, error=("no_device", f"Unknown device {a.get('device')!r}"))
-            if cmd == "set_speed":
+            if cmd == "claim":
+                want = self.desired.setdefault(dev.id, {})
+                want["claim"] = bool(a.get("on"))
+                self._save()
+                if not want["claim"] and dev.handle and dev.shared:
+                    self.release(dev, "openrgb")
+                self.next_scan = 0.0  # re-evaluate now
+                self.reply(rid, {"claim": want["claim"]})
+            elif cmd == "set_speed":
                 ch, mode = str(a.get("channel")), a.get("mode")
                 if mode == "fixed":
                     cfg = {"mode": "fixed", "duty": max(0, min(100, int(a["duty"])))}

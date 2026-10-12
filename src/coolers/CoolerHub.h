@@ -26,6 +26,8 @@ public:
 
     // cfg: {mode: "fixed", duty} | {mode: "curve", points: [[t, d], ...]}
     Q_INVOKABLE int setSpeed(const QString& device, const QString& channel, const QVariantMap& cfg);
+    // Let SudoRGB open a controller OpenRGB also supports (user must disable it in OpenRGB first).
+    Q_INVOKABLE int claim(const QString& device, bool on) { return send(QStringLiteral("claim"), {{QStringLiteral("device"), device}, {QStringLiteral("on"), on}}); }
     // cfg: {mode: "off"} | {mode: "media", path, fit, rotation, brightness}
     Q_INVOKABLE int setLcd(const QString& device, const QVariantMap& cfg);
 
